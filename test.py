@@ -131,7 +131,7 @@ fa = face_utils.facealigner.FaceAligner(shape_predictor, desiredFaceWidth=112, d
 threshold = 0.6
 
 # load distance
-with open("embeddings/embeddings.pkl", "rb") as f:
+with open("embeddings/Embeddings.pkl", "rb") as f:
     (saved_embeds, names) = pickle.load(f)
 
 with tf.Graph().as_default():
