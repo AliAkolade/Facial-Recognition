@@ -168,3 +168,4 @@ faces/tmp/
 /output/recog_trim.gif
 /embeddings/New_Embeddings.pkl
 /.idea/
+.gitignore
