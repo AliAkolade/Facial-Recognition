@@ -145,7 +145,7 @@ with tf.Graph().as_default():
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         embedding_size = embeddings.get_shape()[1]
 
-        video_capture = cv2.VideoCapture(1)
+        video_capture = cv2.VideoCapture(0)
 
         while True:
             fps = video_capture.get(cv2.CAP_PROP_FPS)
