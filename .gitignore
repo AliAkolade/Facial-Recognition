@@ -166,3 +166,5 @@ models/
 /faces/training/Phoebe/
 /faces/training/Rachel/
 /faces/training/Ross/
+/output/recog_trim.gif
+/embeddings/embeddings.pkl
