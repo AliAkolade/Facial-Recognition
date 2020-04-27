@@ -154,9 +154,8 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-embeddings/embeddings (Default).pkl
+
 faces/tmp/
-models/
 /faces/training/Chandler/
 /faces/training/Clinton/
 /faces/training/Joey/
@@ -167,4 +166,4 @@ models/
 /faces/training/Rachel/
 /faces/training/Ross/
 /output/recog_trim.gif
-/embeddings/embeddings.pkl
+/embeddings/New_Embeddings.pkl
