@@ -16,4 +16,4 @@ class HelloKivy(App):
 
 
 helloKivy = HelloKivy()
-helloKivy.run() 
+helloKivy.run()
