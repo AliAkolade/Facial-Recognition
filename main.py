@@ -1,19 +1,15 @@
-import kivy
 from kivy.app import App
-from kivy.uix.button import Label
 
+from kivy.uix.anchorlayout import AnchorLayout
 
-# Inherit Kivy's App class which represents the window
-# for our widgets 
-# HelloKivy inherits all the fields and methods 
-# from Kivy 
-class HelloKivy(App):
+class xLayout(AnchorLayout):
+    pass
 
-    # This returns the content we want in the window 
+class gui(App):
     def build(self):
-        # Return a label widget with Hello Kivy
-        return Label(text="Hello Geeks")
+        # returning the instance of StackLayout class
+        return xLayout()
 
 
-helloKivy = HelloKivy()
-helloKivy.run()
+if __name__ == '__main__':
+    gui().run()
