@@ -145,9 +145,7 @@ def predict(width, height, confidences, boxes, prob_threshold, iou_threshold=0.5
     picked_box_probs[:, 3] *= height
     return picked_box_probs[:, :4].astype(np.int32), np.array(picked_labels), picked_box_probs[:, 4]
 def findFaces():
-
-
-
+    os.chdir(default_directory)
     onnx_path = 'models/ultra_light/ultra_light_models/ultra_light_640.onnx'
     ort_session = ort.InferenceSession(onnx_path)
     input_name = ort_session.get_inputs()[0].name
@@ -175,7 +173,7 @@ def findFaces():
             video_capture = cv2.VideoCapture(0)
 
             while True:
-                fps = video_capture.get(cv2.CAP_PROP_FPS)
+                #fps = video_capture.get(cv2.CAP_PROP_FPS)
                 ret, frame = video_capture.read()
 
                 # preprocess faces
@@ -239,10 +237,10 @@ def findFaces():
                         font = cv2.FONT_HERSHEY_DUPLEX
                         cv2.putText(frame, text, (x1 + 6, y2 - 6), font, 0.3, (255, 255, 255), 1)
 
-                cv2.imshow('Video', frame)
+                cv2.imshow('Live Video Feed', frame)
 
                 # Hit 'q' on the keyboard to quit!
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                if cv2.waitKey(1) & 0xFF == ord(' '):
                     break
 
     # Release handle to the webcam
