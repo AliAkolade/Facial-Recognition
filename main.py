@@ -275,7 +275,7 @@ class TrainWindow(Screen):
 
     def __init__(self, **kwargs):
         super(TrainWindow, self).__init__(**kwargs)
-        self.console_output = "Training Started...\n"
+        self.console_output = "Training Started...\n\n"
 
     def start_second_thread(self):
         threading.Thread(target=self.setFaces).start()
@@ -304,7 +304,7 @@ class TrainWindow(Screen):
 
         for label in dirs:
             for i, fn in enumerate(os.listdir(os.path.join(TRAINING_BASE, label))):
-                self.add_out(str("Collecting faces from "+label+"'s data\n"))
+                self.add_out(str("Loading faces from "+label+"'s data\n"))
                 print(f"Start collecting faces from {label}'s data")
                 cap = cv2.VideoCapture(os.path.join(TRAINING_BASE, label, fn))
                 frame_count = 0
@@ -345,7 +345,7 @@ class TrainWindow(Screen):
         import tensorflow as tf
         with tf.Graph().as_default():
             with tf.Session() as sess:
-                self.console_output += "\n\nLoading Checkpoint ...\n"
+                self.console_output += "\n\nTraining Faces ...\n"
                 print("loading checkpoint ...")
                 saver = tf.train.import_meta_graph('models/mfn/m1/mfn.ckpt.meta')
                 saver.restore(sess, 'models/mfn/m1/mfn.ckpt')
