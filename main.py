@@ -6,25 +6,42 @@ import numpy as np
 import onnx
 import onnxruntime as ort
 from imutils import face_utils
+from kivy.clock import Clock, mainthread
+
 from kivy.app import App
+from kivy.lang import Builder
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.anchorlayout import AnchorLayout
+from kivy.uix.screenmanager import Screen, ScreenManager
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.button import Button
 from plyer import filechooser
-import time
+import time, threading
 from pathlib import Path
+import traceback
+from kivy.properties import StringProperty
+import threading
+
+
 
 default_directory = os.path.abspath(os.curdir)
 default_directory.replace('\\', '/')
 # METHODS
 
-
-def show_popup(xtitle, xmessage):
-    message = Button(text=xmessage, background_color=(0,0,0,0))
-    popupWindow = Popup(title=xtitle, title_align='center', content=message, size_hint=(0.4, 0.4))
+def show_log():
+    but = Button(text="OK")
+    popupWindow = Popup(title="A", title_align='center', content=but, size_hint=(0.5, 0.5))
     popupWindow.open()
-    message.bind(on_press = popupWindow.dismiss)
+
+def show_popup(xtitle, content, isButton, size):
+    popupWindow = Popup(title=xtitle, title_align='center', content=content, size_hint=size)
+    if isButton==True:  content.bind(on_press=popupWindow.dismiss)
+    #popupWindow.bind(on_dismiss=findFaces)
+    #time.sleep(5)
+    #popup.dismiss()
+    popupWindow.open()
+
 
 def area_of(left_top, right_bottom):
     """
@@ -127,82 +144,10 @@ def predict(width, height, confidences, boxes, prob_threshold, iou_threshold=0.5
     picked_box_probs[:, 2] *= width
     picked_box_probs[:, 3] *= height
     return picked_box_probs[:, :4].astype(np.int32), np.array(picked_labels), picked_box_probs[:, 4]
-def setFaces(file_path):
-
-    os.chdir(default_directory)
-
-    onnx_path = 'models/ultra_light/ultra_light_models/ultra_light_640.onnx'
-    ort_session = ort.InferenceSession(onnx_path)
-    input_name = ort_session.get_inputs()[0].name
-    shape_predictor = dlib.shape_predictor('models/facial_landmarks/shape_predictor_5_face_landmarks.dat')
-    fa = face_utils.facealigner.FaceAligner(shape_predictor, desiredFaceWidth=112, desiredLeftEye=(0.3, 0.3))
-
-    path = Path(file_path)
-    path = path.parent.parent
-    path.replace('\\', '/')
-    TRAINING_BASE = 'faces/training'
-
-    dirs = os.listdir(TRAINING_BASE)
-    images = []
-    names = []
-
-
-    for label in dirs:
-        for i, fn in enumerate(os.listdir(os.path.join(TRAINING_BASE, label))):
-            print(f"start collecting faces from {label}'s data")
-            cap = cv2.VideoCapture(os.path.join(TRAINING_BASE, label, fn))
-            frame_count = 0
-            while True:
-                # read video frame
-                ret, raw_img = cap.read()
-                # process every 5 frames
-                if frame_count % 5 == 0 and raw_img is not None:
-                    h, w, _ = raw_img.shape
-                    img = cv2.cvtColor(raw_img, cv2.COLOR_BGR2RGB)
-                    img = cv2.resize(img, (640, 480))
-                    img_mean = np.array([127, 127, 127])
-                    img = (img - img_mean) / 128
-                    img = np.transpose(img, [2, 0, 1])
-                    img = np.expand_dims(img, axis=0)
-                    img = img.astype(np.float32)
-
-                    confidences, boxes = ort_session.run(None, {input_name: img})
-                    boxes, labels, probs = predict(w, h, confidences, boxes, 0.7)
-
-                    # if face detected
-                    if boxes.shape[0] > 0:
-                        x1, y1, x2, y2 = boxes[0, :]
-                        gray = cv2.cvtColor(raw_img, cv2.COLOR_BGR2GRAY)
-                        aligned_face = fa.align(raw_img, gray, dlib.rectangle(left=x1, top=y1, right=x2, bottom=y2))
-                        aligned_face = cv2.resize(aligned_face, (112, 112))
-
-                        cv2.imwrite(f'faces/tmp/{label}_{frame_count}.jpg', aligned_face)
-
-                        aligned_face = aligned_face - 127.5
-                        aligned_face = aligned_face * 0.0078125
-                        images.append(aligned_face)
-                        names.append(label)
-
-                frame_count += 1
-                if frame_count == cap.get(cv2.CAP_PROP_FRAME_COUNT):
-                    break
-    import tensorflow as tf
-    with tf.Graph().as_default():
-        with tf.Session() as sess:
-            print("loading checkpoint ...")
-            saver = tf.train.import_meta_graph('models/mfn/m1/mfn.ckpt.meta')
-            saver.restore(sess, 'models/mfn/m1/mfn.ckpt')
-
-            images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
-            embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
-            phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
-
-            feed_dict = {images_placeholder: images, phase_train_placeholder: False}
-            embeds = sess.run(embeddings, feed_dict=feed_dict)
-            with open("embeddings/embeddings.pkl", "wb") as f:
-                pickle.dump((embeds, names), f)
-            print("Done!")
 def findFaces():
+
+
+
     onnx_path = 'models/ultra_light/ultra_light_models/ultra_light_640.onnx'
     ort_session = ort.InferenceSession(onnx_path)
     input_name = ort_session.get_inputs()[0].name
@@ -305,26 +250,128 @@ def findFaces():
     cv2.destroyAllWindows()
 
 
-class XLayout(AnchorLayout):
-    @staticmethod
-    def test():
-        findFaces()
 
-    @staticmethod
-    def train():
-        path = filechooser.open_file(title="Pick a File")
+
+class MainWindow(Screen):
+
+    def test(self):
+        findFaces()
+    def train(self):
         try:
-            path = str(path[0])
+            path = filechooser.open_file(title="Pick a File")[0]
+            if path != "":
+                self.manager.current = "Training Screen"
+
         except:
-            show_popup("Error", "Please Select Training Files")
-        if(path!=""):
-            setFaces(path)
+            traceback.print_exc()
+            message = Button(text="Please Select Training Files", background_color=(0,0,0,0))
+            show_popup("Error", message, True, [0.4, 0.3])
     pass
 
 
+class TrainWindow(Screen):
+
+    console_output =StringProperty()
+
+    def __init__(self, **kwargs):
+        super(TrainWindow, self).__init__(**kwargs)
+        self.console_output = "Training Started...\n"
+
+    def start_second_thread(self):
+        threading.Thread(target=self.setFaces).start()
+
+    @mainthread
+    def add_out(self, text):
+        self.console_output = str(self.console_output+str(text))
+
+    def setFaces(self):
+        os.chdir("..")
+        os.chdir("..")
+        os.chdir("..")
+        TRAINING_BASE = 'faces/training/'
+        dirs = os.listdir(TRAINING_BASE)
+
+        os.chdir(default_directory)
+
+        onnx_path = 'models/ultra_light/ultra_light_models/ultra_light_640.onnx'
+        ort_session = ort.InferenceSession(onnx_path)
+        input_name = ort_session.get_inputs()[0].name
+        shape_predictor = dlib.shape_predictor('models/facial_landmarks/shape_predictor_5_face_landmarks.dat')
+        fa = face_utils.facealigner.FaceAligner(shape_predictor, desiredFaceWidth=112, desiredLeftEye=(0.3, 0.3))
+
+        images = []
+        names = []
+
+        for label in dirs:
+            for i, fn in enumerate(os.listdir(os.path.join(TRAINING_BASE, label))):
+                self.add_out(str("Collecting faces from "+label+"'s data\n"))
+                print(f"Start collecting faces from {label}'s data")
+                cap = cv2.VideoCapture(os.path.join(TRAINING_BASE, label, fn))
+                frame_count = 0
+                while True:
+                    # read video frame
+                    ret, raw_img = cap.read()
+                    # process every 5 frames
+                    if frame_count % 5 == 0 and raw_img is not None:
+                        h, w, _ = raw_img.shape
+                        img = cv2.cvtColor(raw_img, cv2.COLOR_BGR2RGB)
+                        img = cv2.resize(img, (640, 480))
+                        img_mean = np.array([127, 127, 127])
+                        img = (img - img_mean) / 128
+                        img = np.transpose(img, [2, 0, 1])
+                        img = np.expand_dims(img, axis=0)
+                        img = img.astype(np.float32)
+
+                        confidences, boxes = ort_session.run(None, {input_name: img})
+                        boxes, labels, probs = predict(w, h, confidences, boxes, 0.7)
+
+                        # if face detected
+                        if boxes.shape[0] > 0:
+                            x1, y1, x2, y2 = boxes[0, :]
+                            gray = cv2.cvtColor(raw_img, cv2.COLOR_BGR2GRAY)
+                            aligned_face = fa.align(raw_img, gray, dlib.rectangle(left=x1, top=y1, right=x2, bottom=y2))
+                            aligned_face = cv2.resize(aligned_face, (112, 112))
+
+                            cv2.imwrite(f'faces/tmp/{label}_{frame_count}.jpg', aligned_face)
+
+                            aligned_face = aligned_face - 127.5
+                            aligned_face = aligned_face * 0.0078125
+                            images.append(aligned_face)
+                            names.append(label)
+
+                    frame_count += 1
+                    if frame_count == cap.get(cv2.CAP_PROP_FRAME_COUNT):
+                        break
+        import tensorflow as tf
+        with tf.Graph().as_default():
+            with tf.Session() as sess:
+                self.console_output += "\n\nLoading Checkpoint ...\n"
+                print("loading checkpoint ...")
+                saver = tf.train.import_meta_graph('models/mfn/m1/mfn.ckpt.meta')
+                saver.restore(sess, 'models/mfn/m1/mfn.ckpt')
+
+                images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
+                embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
+                phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
+
+                feed_dict = {images_placeholder: images, phase_train_placeholder: False}
+                embeds = sess.run(embeddings, feed_dict=feed_dict)
+                with open("embeddings/embeddings.pkl", "wb") as f:
+                    pickle.dump((embeds, names), f)
+                self.console_output += "\nDone!\n\n.......................TRAINING COMPLETE......................."
+                print("Done!")
+
+    def on_enter(self, *args):
+        self.start_second_thread()
+    pass
+
+
+class WindowManager(ScreenManager):
+    pass
+
 class Gui(App):
     def build(self):
-        return XLayout()
+        return Builder.load_file("gui.kv")
 
 
 if __name__ == '__main__':
