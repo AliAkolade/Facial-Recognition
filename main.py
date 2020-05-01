@@ -1,32 +1,25 @@
-import pickle
 import os
+import pickle
+import threading
+import traceback
+
 import cv2
 import dlib
 import numpy as np
-import onnx
 import onnxruntime as ort
 from imutils import face_utils
-from kivy.clock import Clock, mainthread
-
 from kivy.app import App
+from kivy.clock import mainthread
 from kivy.lang import Builder
-from kivy.uix.label import Label
-from kivy.uix.popup import Popup
-from kivy.uix.anchorlayout import AnchorLayout
-from kivy.uix.screenmanager import Screen, ScreenManager
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.button import Button
-from plyer import filechooser
-import time, threading
-from pathlib import Path
-import traceback
 from kivy.properties import StringProperty
-import threading
-
-
+from kivy.uix.button import Button
+from kivy.uix.popup import Popup
+from kivy.uix.screenmanager import Screen, ScreenManager
+from plyer import filechooser
 
 default_directory = os.path.abspath(os.curdir)
-default_directory.replace('\\', '/')
+
+
 # METHODS
 
 def show_log():
@@ -34,12 +27,13 @@ def show_log():
     popupWindow = Popup(title="A", title_align='center', content=but, size_hint=(0.5, 0.5))
     popupWindow.open()
 
+
 def show_popup(xtitle, content, isButton, size):
     popupWindow = Popup(title=xtitle, title_align='center', content=content, size_hint=size)
-    if isButton==True:  content.bind(on_press=popupWindow.dismiss)
-    #popupWindow.bind(on_dismiss=findFaces)
-    #time.sleep(5)
-    #popup.dismiss()
+    if isButton == True:  content.bind(on_press=popupWindow.dismiss)
+    # popupWindow.bind(on_dismiss=findFaces)
+    # time.sleep(5)
+    # popup.dismiss()
     popupWindow.open()
 
 
@@ -54,6 +48,8 @@ def area_of(left_top, right_bottom):
     """
     hw = np.clip(right_bottom - left_top, 0.0, None)
     return hw[..., 0] * hw[..., 1]
+
+
 def iou_of(boxes0, boxes1, eps=1e-5):
     """
     Return intersection-over-union (Jaccard index) of boxes.
@@ -71,6 +67,8 @@ def iou_of(boxes0, boxes1, eps=1e-5):
     area0 = area_of(boxes0[..., :2], boxes0[..., 2:])
     area1 = area_of(boxes1[..., :2], boxes1[..., 2:])
     return overlap_area / (area0 + area1 - overlap_area + eps)
+
+
 def hard_nms(box_scores, iou_threshold, top_k=-1, candidate_size=200):
     """
     Perform hard non-maximum-supression to filter out boxes with iou greater
@@ -103,6 +101,8 @@ def hard_nms(box_scores, iou_threshold, top_k=-1, candidate_size=200):
         indexes = indexes[iou <= iou_threshold]
 
     return box_scores[picked, :]
+
+
 def predict(width, height, confidences, boxes, prob_threshold, iou_threshold=0.5, top_k=-1):
     """
     Select boxes that contain human faces
@@ -144,6 +144,8 @@ def predict(width, height, confidences, boxes, prob_threshold, iou_threshold=0.5
     picked_box_probs[:, 2] *= width
     picked_box_probs[:, 3] *= height
     return picked_box_probs[:, :4].astype(np.int32), np.array(picked_labels), picked_box_probs[:, 4]
+
+
 def findFaces():
     os.chdir(default_directory)
     onnx_path = 'models/ultra_light/ultra_light_models/ultra_light_640.onnx'
@@ -173,7 +175,7 @@ def findFaces():
             video_capture = cv2.VideoCapture(0)
 
             while True:
-                #fps = video_capture.get(cv2.CAP_PROP_FPS)
+                # fps = video_capture.get(cv2.CAP_PROP_FPS)
                 ret, frame = video_capture.read()
 
                 # preprocess faces
@@ -248,12 +250,11 @@ def findFaces():
     cv2.destroyAllWindows()
 
 
-
-
 class MainWindow(Screen):
 
     def test(self):
         findFaces()
+
     def train(self):
         try:
             path = filechooser.open_file(title="Pick a File")[0]
@@ -262,14 +263,14 @@ class MainWindow(Screen):
 
         except:
             traceback.print_exc()
-            message = Button(text="Please Select Training Files", background_color=(0,0,0,0))
+            message = Button(text="Please Select Training Files", background_color=(0, 0, 0, 0))
             show_popup("Error", message, True, [0.4, 0.3])
+
     pass
 
 
 class TrainWindow(Screen):
-
-    console_output =StringProperty()
+    console_output = StringProperty()
 
     def __init__(self, **kwargs):
         super(TrainWindow, self).__init__(**kwargs)
@@ -280,7 +281,7 @@ class TrainWindow(Screen):
 
     @mainthread
     def add_out(self, text):
-        self.console_output = str(self.console_output+str(text))
+        self.console_output = str(self.console_output + str(text))
 
     def setFaces(self):
         os.chdir("..")
@@ -302,7 +303,7 @@ class TrainWindow(Screen):
 
         for label in dirs:
             for i, fn in enumerate(os.listdir(os.path.join(TRAINING_BASE, label))):
-                self.add_out(str("Loading faces from "+label+"'s data\n"))
+                self.add_out(str("Loading faces from " + label + "'s data\n"))
                 print(f"Start collecting faces from {label}'s data")
                 cap = cv2.VideoCapture(os.path.join(TRAINING_BASE, label, fn))
                 frame_count = 0
@@ -361,11 +362,13 @@ class TrainWindow(Screen):
 
     def on_enter(self, *args):
         self.start_second_thread()
+
     pass
 
 
 class WindowManager(ScreenManager):
     pass
+
 
 class Gui(App):
     def build(self):
